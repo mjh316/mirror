@@ -104,8 +104,9 @@ export default function VideoPage() {
           const sampleRate = decodedAudioData.sampleRate;
           const duration = decodedAudioData.duration;
           
-          // Create offline audio context for rendering
-          const offlineAudioContext = new OfflineAudioContext(numberOfChannels, sampleRate * duration, sampleRate);
+          // Create offline audio context for rendering with optimized sample rate
+          const optimizedSampleRate = Math.min(sampleRate, 16000); // Limit to 16kHz for smaller files
+          const offlineAudioContext = new OfflineAudioContext(numberOfChannels, optimizedSampleRate * duration, optimizedSampleRate);
           
           // Create buffer source
           const soundSource = offlineAudioContext.createBufferSource();
@@ -131,8 +132,8 @@ export default function VideoPage() {
             pcmData[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
           }
           
-          // Create WAV file
-          const wavBlob = createWavBlob(pcmData, sampleRate, numberOfChannels);
+          // Create WAV file with optimized sample rate
+          const wavBlob = createWavBlob(pcmData, optimizedSampleRate, numberOfChannels);
           resolve(wavBlob);
           
         } catch (error) {

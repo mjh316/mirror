@@ -4,6 +4,7 @@ import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { UserButton } from "@clerk/nextjs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Navbar() {
   return (
@@ -15,7 +16,9 @@ export default function Navbar() {
       <Authenticated>
         <UserButton />
       </Authenticated>
-      <AuthLoading>Loading…</AuthLoading>
+      <AuthLoading>
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </AuthLoading>
     </header>
   );
 }

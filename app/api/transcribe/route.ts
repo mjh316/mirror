@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       model: 'whisper-1',
       response_format: 'verbose_json',
       timestamp_granularities: ['word', 'segment'],
+      prompt: "This is a natural conversation. Please transcribe exactly as spoken, including all filler words like 'um', 'uh', 'like', 'you know', pauses, repetitions, and natural speech patterns. Do not clean up or edit the speech. Keep it authentic to how the person actually talks.",
     });
 
     return NextResponse.json({

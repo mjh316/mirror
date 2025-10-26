@@ -46,7 +46,9 @@ export const getFilesByUserAndType = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("userFiles")
-      .withIndex("by_user_type", (q) => q.eq("userId", args.userId).eq("fileType", args.fileType))
+      .withIndex("by_user_type", (q) =>
+        q.eq("userId", args.userId).eq("fileType", args.fileType)
+      )
       .collect();
   },
 });
@@ -59,3 +61,42 @@ export const getFileUrl = query({
   },
 });
 
+// Store Fish model information
+export const storeFishModel = mutation({
+  args: {
+    userId: v.string(),
+    modelId: v.string(),
+    fishModelId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    visibility: v.string(),
+    trainMode: v.string(),
+    state: v.string(),
+    audioFiles: v.array(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("fishModels", {
+      userId: args.userId,
+      modelId: args.modelId,
+      fishModelId: args.fishModelId,
+      title: args.title,
+      description: args.description,
+      visibility: args.visibility,
+      trainMode: args.trainMode,
+      state: args.state,
+      audioFiles: args.audioFiles,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// Get Fish models for a user
+export const getFishModelsByUser = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("fishModels")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+  },
+});

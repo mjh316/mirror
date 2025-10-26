@@ -10,6 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -47,32 +50,47 @@ export default function Home() {
           </CardHeader>
 
           <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <SignInButton
-              mode="modal"
-              forceRedirectUrl="/video"
-              fallbackRedirectUrl="/video"
-            >
+            <Authenticated>
               <Button
                 variant="outline"
                 size="lg"
                 className="w-full sm:w-auto min-w-[200px] border-[#D8D8D8] dark:border-[#404040] hover:bg-[#F7D7FF] dark:hover:bg-[#B3B3B3] transition-all"
               >
-                Sign In
+                <Link href="/video" className="w-full sm:w-auto min-w-[200px]">
+                  Visit Your Mirror
+                </Link>
               </Button>
-            </SignInButton>
-
-            <SignUpButton
-              mode="modal"
-              forceRedirectUrl="/video"
-              fallbackRedirectUrl="/video"
-            >
-              <Button
-                size="lg"
-                className="w-full sm:w-auto min-w-[200px] bg-[#404040] dark:bg-[#404040] hover:bg-[#404040]/90 dark:hover:bg-[#404040]/90 text-white shadow-lg"
+            </Authenticated>
+            <Unauthenticated>
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/video"
+                fallbackRedirectUrl="/video"
               >
-                Begin Your Journey
-              </Button>
-            </SignUpButton>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto min-w-[200px] border-[#D8D8D8] dark:border-[#404040] hover:bg-[#F7D7FF] dark:hover:bg-[#B3B3B3] transition-all"
+                >
+                  Sign In
+                </Button>
+              </SignInButton>
+              <SignUpButton
+                mode="modal"
+                forceRedirectUrl="/video"
+                fallbackRedirectUrl="/video"
+              >
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto min-w-[200px] bg-[#404040] dark:bg-[#404040] hover:bg-[#404040]/90 dark:hover:bg-[#404040]/90 text-white shadow-lg"
+                >
+                  Begin Your Journey
+                </Button>
+              </SignUpButton>
+            </Unauthenticated>
+            <AuthLoading>
+              <Skeleton className="w-full sm:w-auto min-w-[200px] h-10" />
+            </AuthLoading>
           </CardContent>
         </Card>
 

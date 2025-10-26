@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
@@ -12,7 +12,7 @@ interface Message {
   content: string;
 }
 
-export default function ResultsPage() {
+function ResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useUser();
@@ -97,16 +97,17 @@ export default function ResultsPage() {
 
     try {
       // Build context with user's transcriptions from Convex
-      const allMessages = [...messages, userMessage];
+      // Create a new array with all messages including the new user message
+      const allMessages: Message[] = [];
       
+      // Add transcription context as system message if we have transcriptions
       if (userTranscriptions.length > 0) {
-        // Add transcription context to the beginning
         const transcriptionContext = userTranscriptions.map((trans, idx) => 
           `Previous response ${idx + 1}:\n${trans}`
         ).join('\n\n');
         
-        const contextMessage = {
-          role: 'system' as const,
+        allMessages.push({
+          role: 'system',
           content: `You are the user's inner voice and reflection assistant. Below are the user's own words from their previous recordings:
 
 ${transcriptionContext}
@@ -114,10 +115,15 @@ ${transcriptionContext}
 YOUR TASK: Analyze the user's speech patterns carefully - notice their vocabulary, sentence structure, word choices, tone, level of formality, use of filler words, and overall speaking style. Then imitate this exact manner of speaking when responding. 
 
 Respond as if you ARE the user talking to themselves in their head - using their exact speaking style, word choices, and tone. Reflect their thoughts back to them in their own voice. Be insightful and help them understand themselves better while maintaining their authentic speaking patterns and continuing the conversation.`
-        };
-        
-        allMessages.unshift(contextMessage);
+        });
       }
+      
+      // Add all previous conversation messages (including both user and assistant messages)
+      // This ensures the chatbot has full context of the entire conversation
+      allMessages.push(...messages);
+      
+      // Add the current user message
+      allMessages.push(userMessage);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -232,5 +238,20 @@ Respond as if you ARE the user talking to themselves in their head - using their
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading chat...</p>
+        </div>
+      </div>
+    }>
+      <ResultsContent />
+    </Suspense>
   );
 }

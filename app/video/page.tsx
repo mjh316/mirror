@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef } from "react";
 
 export default function VideoPage() {
   const [isRecording, setIsRecording] = useState(false);
@@ -9,7 +9,9 @@ export default function VideoPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(
+    null
+  );
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -17,11 +19,11 @@ export default function VideoPage() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -37,7 +39,7 @@ export default function VideoPage() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
         const videoURL = URL.createObjectURL(blob);
         setRecordedVideo(videoURL);
         setIsRecording(false);
@@ -50,14 +52,13 @@ export default function VideoPage() {
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
 
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
     } catch (error) {
-      console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please check permissions.');
+      console.error("Error accessing camera:", error);
+      alert("Unable to access camera. Please check permissions.");
     }
   };
 
@@ -66,7 +67,7 @@ export default function VideoPage() {
       mediaRecorderRef.current.stop();
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     }
   };
@@ -82,87 +83,106 @@ export default function VideoPage() {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const extractAudioFromVideo = async (videoBlob: Blob): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = async () => {
         try {
           const videoFileAsBuffer = reader.result as ArrayBuffer;
-          
+
           // Create audio context
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          
+          const audioContext = new (window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext })
+              .webkitAudioContext)();
+
           // Decode the video file as audio data
-          const decodedAudioData = await audioContext.decodeAudioData(videoFileAsBuffer);
-          
+          const decodedAudioData =
+            await audioContext.decodeAudioData(videoFileAsBuffer);
+
           // Get audio properties
           const numberOfChannels = decodedAudioData.numberOfChannels;
           const sampleRate = decodedAudioData.sampleRate;
           const duration = decodedAudioData.duration;
-          
+
           // Create offline audio context for rendering with optimized sample rate
           const optimizedSampleRate = Math.min(sampleRate, 16000); // Limit to 16kHz for smaller files
-          const offlineAudioContext = new OfflineAudioContext(numberOfChannels, optimizedSampleRate * duration, optimizedSampleRate);
-          
+          const offlineAudioContext = new OfflineAudioContext(
+            numberOfChannels,
+            optimizedSampleRate * duration,
+            optimizedSampleRate
+          );
+
           // Create buffer source
           const soundSource = offlineAudioContext.createBufferSource();
           soundSource.buffer = decodedAudioData;
           soundSource.connect(offlineAudioContext.destination);
           soundSource.start();
-          
+
           // Render the audio
           const renderedBuffer = await offlineAudioContext.startRendering();
-          
+
           // Convert AudioBuffer to Blob
-          const audioData = new Float32Array(renderedBuffer.length * numberOfChannels);
+          const audioData = new Float32Array(
+            renderedBuffer.length * numberOfChannels
+          );
           let offset = 0;
-          
+
           for (let channel = 0; channel < numberOfChannels; channel++) {
             audioData.set(renderedBuffer.getChannelData(channel), offset);
             offset += renderedBuffer.length;
           }
-          
+
           // Convert to 16-bit PCM
           const pcmData = new Int16Array(audioData.length);
           for (let i = 0; i < audioData.length; i++) {
-            pcmData[i] = Math.max(-32768, Math.min(32767, audioData[i] * 32768));
+            pcmData[i] = Math.max(
+              -32768,
+              Math.min(32767, audioData[i] * 32768)
+            );
           }
-          
+
           // Create WAV file with optimized sample rate
-          const wavBlob = createWavBlob(pcmData, optimizedSampleRate, numberOfChannels);
+          const wavBlob = createWavBlob(
+            pcmData,
+            optimizedSampleRate,
+            numberOfChannels
+          );
           resolve(wavBlob);
-          
         } catch (error) {
-          console.error('Audio extraction error:', error);
+          console.error("Audio extraction error:", error);
           reject(error);
         }
       };
-      
-      reader.onerror = () => reject(new Error('Failed to read video file'));
+
+      reader.onerror = () => reject(new Error("Failed to read video file"));
       reader.readAsArrayBuffer(videoBlob);
     });
   };
 
-  const createWavBlob = (pcmData: Int16Array, sampleRate: number, channels: number): Blob => {
+  const createWavBlob = (
+    pcmData: Int16Array,
+    sampleRate: number,
+    channels: number
+  ): Blob => {
     const length = pcmData.length;
     const arrayBuffer = new ArrayBuffer(44 + length * 2);
     const view = new DataView(arrayBuffer);
-    
+
     // WAV header
     const writeString = (offset: number, string: string) => {
       for (let i = 0; i < string.length; i++) {
         view.setUint8(offset + i, string.charCodeAt(i));
       }
     };
-    
-    writeString(0, 'RIFF');
+
+    writeString(0, "RIFF");
     view.setUint32(4, 36 + length * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, channels, true);
@@ -170,20 +190,20 @@ export default function VideoPage() {
     view.setUint32(28, sampleRate * channels * 2, true);
     view.setUint16(32, channels * 2, true);
     view.setUint16(34, 16, true);
-    writeString(36, 'data');
+    writeString(36, "data");
     view.setUint32(40, length * 2, true);
-    
+
     // Write PCM data
     for (let i = 0; i < length; i++) {
       view.setInt16(44 + i * 2, pcmData[i], true);
     }
-    
-    return new Blob([arrayBuffer], { type: 'audio/wav' });
+
+    return new Blob([arrayBuffer], { type: "audio/wav" });
   };
 
   const transcribeVideo = async () => {
     if (!recordedVideo && !uploadedVideo) {
-      setTranscriptionError('No video available to transcribe');
+      setTranscriptionError("No video available to transcribe");
       return;
     }
 
@@ -193,7 +213,7 @@ export default function VideoPage() {
     try {
       // Get the video blob
       let videoBlob: Blob;
-      
+
       if (recordedVideo) {
         // For recorded video, we already have the blob
         const response = await fetch(recordedVideo);
@@ -203,35 +223,36 @@ export default function VideoPage() {
         const response = await fetch(uploadedVideo);
         videoBlob = await response.blob();
       } else {
-        throw new Error('No video available');
+        throw new Error("No video available");
       }
 
-      console.log('Extracting audio from video...');
+      console.log("Extracting audio from video...");
       // Extract audio from video using Web Audio API
       const audioBlob = await extractAudioFromVideo(videoBlob);
-      console.log('Audio extracted, size:', audioBlob.size, 'bytes');
+      console.log("Audio extracted, size:", audioBlob.size, "bytes");
 
       // Create FormData for the API
       const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.wav');
+      formData.append("file", audioBlob, "audio.wav");
 
       // Send to our transcription API
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Transcription failed');
+        throw new Error(errorData.error || "Transcription failed");
       }
 
       const data = await response.json();
       setTranscription(data.text);
-
     } catch (error) {
-      console.error('Transcription error:', error);
-      setTranscriptionError(error instanceof Error ? error.message : 'Transcription failed');
+      console.error("Transcription error:", error);
+      setTranscriptionError(
+        error instanceof Error ? error.message : "Transcription failed"
+      );
     } finally {
       setIsTranscribing(false);
     }
@@ -264,7 +285,7 @@ export default function VideoPage() {
           {/* Video Display Area */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
             <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-6">
-              {(recordedVideo || uploadedVideo) ? (
+              {recordedVideo || uploadedVideo ? (
                 <video
                   controls
                   className="w-full h-full object-cover"
@@ -274,11 +295,23 @@ export default function VideoPage() {
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <svg
+                        className="w-8 h-8 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
                       </svg>
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400">No video selected</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No video selected
+                    </p>
                   </div>
                 </div>
               )}
@@ -324,7 +357,7 @@ export default function VideoPage() {
               <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Choose a video file from your device
               </p>
-              
+
               <div className="space-y-4">
                 <input
                   type="file"
@@ -338,13 +371,26 @@ export default function VideoPage() {
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    <svg
+                      className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
                     </svg>
                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                      <span className="font-semibold">Click to upload</span> or
+                      drag and drop
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">MP4, MOV, AVI, etc.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      MP4, MOV, AVI, etc.
+                    </p>
                   </div>
                 </label>
               </div>
@@ -358,14 +404,18 @@ export default function VideoPage() {
               <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Record yourself using your camera
               </p>
-              
+
               <div className="space-y-4">
                 {!isRecording ? (
                   <button
                     onClick={startRecording}
                     className="w-full flex items-center justify-center px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <circle cx="12" cy="12" r="10" />
                     </svg>
                     Start Recording
@@ -375,7 +425,11 @@ export default function VideoPage() {
                     onClick={stopRecording}
                     className="w-full flex items-center justify-center px-6 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <rect x="6" y="6" width="12" height="12" />
                     </svg>
                     Stop Recording
@@ -391,7 +445,7 @@ export default function VideoPage() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                 Transcription
               </h2>
-              
+
               <div className="space-y-4">
                 <button
                   onClick={transcribeVideo}
@@ -400,16 +454,42 @@ export default function VideoPage() {
                 >
                   {isTranscribing ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Transcribing...
                     </>
                   ) : (
                     <>
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                        />
                       </svg>
                       Transcribe Speech
                     </>
@@ -418,7 +498,9 @@ export default function VideoPage() {
 
                 {transcriptionError && (
                   <div className="p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-xl">
-                    <p className="text-red-700 dark:text-red-300">{transcriptionError}</p>
+                    <p className="text-red-700 dark:text-red-300">
+                      {transcriptionError}
+                    </p>
                   </div>
                 )}
 
@@ -434,18 +516,22 @@ export default function VideoPage() {
                     </div>
                     <div className="mt-4 flex gap-2">
                       <button
-                        onClick={() => navigator.clipboard.writeText(transcription)}
+                        onClick={() =>
+                          navigator.clipboard.writeText(transcription)
+                        }
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                       >
                         Copy Text
                       </button>
                       <button
                         onClick={() => {
-                          const blob = new Blob([transcription], { type: 'text/plain' });
+                          const blob = new Blob([transcription], {
+                            type: "text/plain",
+                          });
                           const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
+                          const a = document.createElement("a");
                           a.href = url;
-                          a.download = 'transcription.txt';
+                          a.download = "transcription.txt";
                           a.click();
                           URL.revokeObjectURL(url);
                         }}

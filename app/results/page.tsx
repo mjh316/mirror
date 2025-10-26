@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
@@ -12,12 +12,7 @@ interface Message {
   content: string;
 }
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-export default function ResultsPage() {
+function ResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useUser();
@@ -75,85 +70,13 @@ export default function ResultsPage() {
     
     if (t1) setTranscription1(decodeURIComponent(t1));
     if (t2) setTranscription2(decodeURIComponent(t2));
-
-    // Initialize chat with context about the transcriptions
-    if ((t1 || t2) && messages.length === 0) {
-      const contextMessage = `I've just recorded my responses to some questions. Here's what I said:\n\n`;
-      const t1Text = t1 ? decodeURIComponent(t1) : '';
-      const t2Text = t2 ? decodeURIComponent(t2) : '';
-      
-      let initialContent = contextMessage;
-      if (t1) initialContent += `Response 1: ${t1Text}\n\n`;
-      if (t2) initialContent += `Response 2: ${t2Text}\n\n`;
-      
-      setMessages([{
-        role: 'assistant',
-        content: 'Hi! I\'ve reviewed your responses. I\'d love to hear more about what you\'re thinking. What would you like to talk about?'
-      }]);
-    }
-  }, [searchParams, messages.length]);
+  }, [searchParams]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      // Build context with transcriptions
-      const contextMessages: Message[] = [];
-      
-      if (transcription1 || transcription2) {
-        let context = 'Here is the user\'s recorded responses:\n\n';
-        if (transcription1) context += `Response 1: ${transcription1}\n\n`;
-        if (transcription2) context += `Response 2: ${transcription2}\n\n`;
-        context += 'Please engage with the user based on these responses. Be insightful and conversational.';
-        contextMessages.push({ role: 'assistant', content: context });
-      }
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...contextMessages, ...messages, userMessage],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please try again.' 
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Initialize chat with greeting if we have transcriptions
+  // Initialize chat with greeting if we have transcriptions from Convex
   useEffect(() => {
     if (userTranscriptions.length > 0 && messages.length === 0) {
       // Use a more natural greeting that sounds like they're talking to themselves
@@ -174,16 +97,17 @@ export default function ResultsPage() {
 
     try {
       // Build context with user's transcriptions from Convex
-      const allMessages = [...messages, userMessage];
+      // Create a new array with all messages including the new user message
+      const allMessages: Message[] = [];
       
+      // Add transcription context as system message if we have transcriptions
       if (userTranscriptions.length > 0) {
-        // Add transcription context to the beginning
         const transcriptionContext = userTranscriptions.map((trans, idx) => 
           `Previous response ${idx + 1}:\n${trans}`
         ).join('\n\n');
         
-        const contextMessage = {
-          role: 'system' as const,
+        allMessages.push({
+          role: 'system',
           content: `You are the user's inner voice and reflection assistant. Below are the user's own words from their previous recordings:
 
 ${transcriptionContext}
@@ -191,10 +115,15 @@ ${transcriptionContext}
 YOUR TASK: Analyze the user's speech patterns carefully - notice their vocabulary, sentence structure, word choices, tone, level of formality, use of filler words, and overall speaking style. Then imitate this exact manner of speaking when responding. 
 
 Respond as if you ARE the user talking to themselves in their head - using their exact speaking style, word choices, and tone. Reflect their thoughts back to them in their own voice. Be insightful and help them understand themselves better while maintaining their authentic speaking patterns and continuing the conversation.`
-        };
-        
-        allMessages.unshift(contextMessage);
+        });
       }
+      
+      // Add all previous conversation messages (including both user and assistant messages)
+      // This ensures the chatbot has full context of the entire conversation
+      allMessages.push(...messages);
+      
+      // Add the current user message
+      allMessages.push(userMessage);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -219,12 +148,6 @@ Respond as if you ARE the user talking to themselves in their head - using their
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -293,7 +216,12 @@ Respond as if you ARE the user talking to themselves in their head - using their
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Type your message..."
                 className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
@@ -310,5 +238,20 @@ Respond as if you ARE the user talking to themselves in their head - using their
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading chat...</p>
+        </div>
+      </div>
+    }>
+      <ResultsContent />
+    </Suspense>
   );
 }

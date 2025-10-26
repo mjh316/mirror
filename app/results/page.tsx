@@ -12,6 +12,11 @@ interface Message {
   content: string;
 }
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function ResultsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -70,7 +75,79 @@ export default function ResultsPage() {
     
     if (t1) setTranscription1(decodeURIComponent(t1));
     if (t2) setTranscription2(decodeURIComponent(t2));
-  }, [searchParams]);
+
+    // Initialize chat with context about the transcriptions
+    if ((t1 || t2) && messages.length === 0) {
+      const contextMessage = `I've just recorded my responses to some questions. Here's what I said:\n\n`;
+      const t1Text = t1 ? decodeURIComponent(t1) : '';
+      const t2Text = t2 ? decodeURIComponent(t2) : '';
+      
+      let initialContent = contextMessage;
+      if (t1) initialContent += `Response 1: ${t1Text}\n\n`;
+      if (t2) initialContent += `Response 2: ${t2Text}\n\n`;
+      
+      setMessages([{
+        role: 'assistant',
+        content: 'Hi! I\'ve reviewed your responses. I\'d love to hear more about what you\'re thinking. What would you like to talk about?'
+      }]);
+    }
+  }, [searchParams, messages.length]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Build context with transcriptions
+      const contextMessages: Message[] = [];
+      
+      if (transcription1 || transcription2) {
+        let context = 'Here is the user\'s recorded responses:\n\n';
+        if (transcription1) context += `Response 1: ${transcription1}\n\n`;
+        if (transcription2) context += `Response 2: ${transcription2}\n\n`;
+        context += 'Please engage with the user based on these responses. Be insightful and conversational.';
+        contextMessages.push({ role: 'assistant', content: context });
+      }
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...contextMessages, ...messages, userMessage],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -1,49 +1,109 @@
-'use client';
+"use client";
 
-import Image from "next/image";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-16">
-        <Image
-          className="dark:invert mb-8"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        
-        <div className="flex flex-col items-center gap-6 text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            Mirror
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-md">
-            Where your reflection talks back.
-          </p>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-[#FFFFFF] dark:bg-[#404040]">
+      <main className="flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-6 py-16">
+        {/* Badge */}
+        <Badge
+          variant="secondary"
+          className="mb-6 bg-[#F7D7FF] text-[#404040] dark:bg-[#B3B3B3] dark:text-[#FFFFFF] border-[#D8D8D8] dark:border-[#B3B3B3]"
+        >
+          🤫 Speak to your reflection
+        </Badge>
 
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <SignInButton 
-            mode="modal"
-            forceRedirectUrl="/video"
-            fallbackRedirectUrl="/video"
-          >
-            <button className="flex h-12 items-center justify-center gap-2 rounded-full border border-solid border-black/[.08] dark:border-white/[.145] bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-5 text-gray-900 dark:text-white font-medium transition-colors">
-              Sign In
-            </button>
-          </SignInButton>
-          <SignUpButton 
-            mode="modal"
-            forceRedirectUrl="/video"
-            fallbackRedirectUrl="/video"
-          >
-            <button className="flex h-12 items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-white font-medium transition-colors">
-              Sign Up
-            </button>
-          </SignUpButton>
+        {/* Main Card */}
+        <Card className="w-full max-w-2xl border-[#D8D8D8] dark:border-[#404040] shadow-lg bg-white dark:bg-[#404040]">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-[#404040] flex items-center justify-center shadow-lg">
+                  <span className="text-5xl">🪞</span>
+                </div>
+                {/* Animated gradient orb */}
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#F7D7FF] rounded-full blur-sm animate-pulse"></div>
+              </div>
+            </div>
+
+            <CardTitle className="text-5xl font-bold text-[#404040] dark:text-[#FFFFFF]">
+              Mirror
+            </CardTitle>
+
+            <CardDescription className="text-lg text-[#404040] dark:text-[#B3B3B3] max-w-md mx-auto">
+              Where your reflection talks back. Dare to look deeper into the
+              depths of your own voice.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex flex-col items-center gap-4 pt-6">
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl="/video"
+              fallbackRedirectUrl="/video"
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto min-w-[200px] border-[#D8D8D8] dark:border-[#404040] hover:bg-[#F7D7FF] dark:hover:bg-[#B3B3B3] transition-all"
+              >
+                Sign In
+              </Button>
+            </SignInButton>
+
+            <SignUpButton
+              mode="modal"
+              forceRedirectUrl="/video"
+              fallbackRedirectUrl="/video"
+            >
+              <Button
+                size="lg"
+                className="w-full sm:w-auto min-w-[200px] bg-[#404040] dark:bg-[#404040] hover:bg-[#404040]/90 dark:hover:bg-[#404040]/90 text-white shadow-lg"
+              >
+                Begin Your Journey
+              </Button>
+            </SignUpButton>
+          </CardContent>
+        </Card>
+
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 w-full max-w-4xl">
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">🎙️</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                Voice Capture
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">✨</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                AI Insights
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">🔮</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                Discover Truth
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

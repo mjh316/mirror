@@ -22,8 +22,8 @@ export default function Navbar() {
         {/* Logo and Navigation */}
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">M</span>
+            <div className="w-8 h-8 rounded-lg bg-[#404040] flex items-center justify-center">
+              <span className="text-2xl">🪞</span>
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">
               Mirror

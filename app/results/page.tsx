@@ -3,6 +3,14 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from 'convex/react';
+import { useUser } from '@clerk/nextjs';
+import { api } from '@/convex/_generated/api';
+
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,12 +20,54 @@ interface Message {
 export default function ResultsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useUser();
+  const [transcription1, setTranscription1] = useState<string>('');
+  const [transcription2, setTranscription2] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [transcription1, setTranscription1] = useState<string>('');
-  const [transcription2, setTranscription2] = useState<string>('');
+  const [userTranscriptions, setUserTranscriptions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user's transcription files from Convex
+  const userFiles = useQuery(
+    api.fileOperations.getFilesByUserAndType,
+    user ? { userId: user.id, fileType: 'transcription' } : 'skip'
+  );
+
+  // Fetch transcription content from storage
+  useEffect(() => {
+    const fetchTranscriptionContent = async (storageId: string) => {
+      try {
+        // Get the storage URL
+        const response = await fetch(`/api/getFile?storageId=${storageId}`);
+        const data = await response.json();
+        const url = data.url;
+        
+        if (url) {
+          const fileResponse = await fetch(url);
+          const text = await fileResponse.text();
+          return text;
+        }
+      } catch (error) {
+        console.error('Error fetching transcription content:', error);
+      }
+      return '';
+    };
+
+    const loadTranscriptions = async () => {
+      if (userFiles && userFiles.length > 0) {
+        const contents = await Promise.all(
+          userFiles.map(file => fetchTranscriptionContent(file.storageId))
+        );
+        setUserTranscriptions(contents.filter(Boolean));
+      }
+    };
+
+    if (userFiles) {
+      loadTranscriptions();
+    }
+  }, [userFiles]);
 
   useEffect(() => {
     const t1 = searchParams.get('transcription1');
@@ -99,18 +149,103 @@ export default function ResultsPage() {
     }
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Initialize chat with greeting if we have transcriptions
+  useEffect(() => {
+    if (userTranscriptions.length > 0 && messages.length === 0) {
+      // Use a more natural greeting that sounds like they're talking to themselves
+      setMessages([{
+        role: 'assistant',
+        content: 'Hey, I\'ve been listening to your thoughts... What do you want to explore?'
+      }]);
+    }
+  }, [userTranscriptions, messages.length]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Build context with user's transcriptions from Convex
+      const allMessages = [...messages, userMessage];
+      
+      if (userTranscriptions.length > 0) {
+        // Add transcription context to the beginning
+        const transcriptionContext = userTranscriptions.map((trans, idx) => 
+          `Previous response ${idx + 1}:\n${trans}`
+        ).join('\n\n');
+        
+        const contextMessage = {
+          role: 'system' as const,
+          content: `You are the user's inner voice and reflection assistant. Below are the user's own words from their previous recordings:
+
+${transcriptionContext}
+
+YOUR TASK: Analyze the user's speech patterns carefully - notice their vocabulary, sentence structure, word choices, tone, level of formality, use of filler words, and overall speaking style. Then imitate this exact manner of speaking when responding. 
+
+Respond as if you ARE the user talking to themselves in their head - using their exact speaking style, word choices, and tone. Reflect their thoughts back to them in their own voice. Be insightful and help them understand themselves better while maintaining their authentic speaking patterns and continuing the conversation.`
+        };
+        
+        allMessages.unshift(contextMessage);
+      }
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: allMessages }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="flex flex-col h-screen">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Chat with Mirror
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Discuss your responses and explore your thoughts
-            </p>
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Chat with Mirror
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Explore your thoughts and reflections
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/video')}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-xl transition-colors"
+            >
+              New Recording
+            </button>
           </div>
         </div>
 
@@ -169,12 +304,6 @@ export default function ResultsPage() {
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors disabled:cursor-not-allowed"
               >
                 Send
-              </button>
-              <button
-                onClick={() => router.push('/video')}
-                className="px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-xl transition-colors"
-              >
-                New Recording
               </button>
             </div>
           </div>

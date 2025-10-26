@@ -16,19 +16,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add system message at the beginning if it's not already there
-    const allMessages = [...messages];
-    if (!messages.some((m: any) => m.role === 'system')) {
-      allMessages.unshift({
-        role: 'system',
-        content: 'You are Mirror, a thoughtful AI assistant that helps people explore their thoughts and reflections. You engage in meaningful conversations, ask insightful questions, and help users deepen their self-understanding. Be warm, conversational, and genuinely curious about what the user is sharing.'
-      });
-    }
+    // Use the messages as-is (system message should already be included if needed)
+    const allMessages = messages;
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: allMessages,
-      temperature: 0.7,
+      temperature: 0.8,
       max_tokens: 1024,
     });
 

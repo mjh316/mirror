@@ -81,12 +81,13 @@ export async function POST(request: NextRequest) {
       format: "mp3",
       latency: "normal",
       normalize: true,
+      reference_id: "050bbf8043da48efb95b3ecadfd7ac05",
     };
 
     // Add reference_id if we have a custom model
-    if (reference_id) {
-      requestBody.reference_id = reference_id;
-    }
+    // if (reference_id) {
+    //   requestBody.reference_id = reference_id;
+    // }
 
     // Call Fish Audio TTS API
     const fishResponse = await fetch("https://api.fish.audio/v1/tts", {

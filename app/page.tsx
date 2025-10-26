@@ -1,43 +1,127 @@
-import Image from "next/image";
+"use client";
+
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Welcome to Mirror
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Upload or record videos of yourself talking. Click the button below to get started with video recording and upload functionality.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 text-white transition-colors md:w-[200px]"
-            href="/video"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Video Upload & Recording
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    <div className="flex min-h-screen items-center justify-center bg-[#FFFFFF] dark:bg-[#404040]">
+      <main className="flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-6 py-16">
+        {/* Badge */}
+        <Badge
+          variant="secondary"
+          className="mb-6 bg-[#F7D7FF] text-[#404040] dark:bg-[#B3B3B3] dark:text-[#FFFFFF] border-[#D8D8D8] dark:border-[#B3B3B3]"
+        >
+          🤫 Speak to your reflection
+        </Badge>
+
+        {/* Main Card */}
+        <Card className="w-full max-w-2xl border-[#D8D8D8] dark:border-[#404040] shadow-lg bg-white dark:bg-[#404040]">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl bg-[#404040] flex items-center justify-center shadow-lg">
+                  <span className="text-5xl">🪞</span>
+                </div>
+                {/* Animated gradient orb */}
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#F7D7FF] rounded-full blur-sm animate-pulse"></div>
+              </div>
+            </div>
+
+            <CardTitle className="text-5xl font-bold text-[#404040] dark:text-[#FFFFFF]">
+              Mirror
+            </CardTitle>
+
+            <CardDescription className="text-lg text-[#404040] dark:text-[#B3B3B3] max-w-md mx-auto">
+              Where your reflection talks back. Dare to look deeper into the
+              depths of your own voice.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex flex-col items-center gap-4 pt-6">
+            <Authenticated>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto min-w-[200px] border-[#D8D8D8] dark:border-[#404040] hover:bg-[#F7D7FF] dark:hover:bg-[#B3B3B3] transition-all"
+              >
+                <Link href="/video" className="w-full sm:w-auto min-w-[200px]">
+                  Visit Your Mirror
+                </Link>
+              </Button>
+            </Authenticated>
+            <Unauthenticated>
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/video"
+                fallbackRedirectUrl="/video"
+              >
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto min-w-[200px] border-[#D8D8D8] dark:border-[#404040] hover:bg-[#F7D7FF] dark:hover:bg-[#B3B3B3] transition-all"
+                >
+                  Sign In
+                </Button>
+              </SignInButton>
+              <SignUpButton
+                mode="modal"
+                forceRedirectUrl="/video"
+                fallbackRedirectUrl="/video"
+              >
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto min-w-[200px] bg-[#404040] dark:bg-[#404040] hover:bg-[#404040]/90 dark:hover:bg-[#404040]/90 text-white shadow-lg"
+                >
+                  Begin Your Journey
+                </Button>
+              </SignUpButton>
+            </Unauthenticated>
+            <AuthLoading>
+              <Skeleton className="w-full sm:w-auto min-w-[200px] h-10" />
+            </AuthLoading>
+          </CardContent>
+        </Card>
+
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 w-full max-w-4xl">
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">🎙️</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                Voice Capture
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">✨</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                AI Insights
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#D8D8D8] dark:border-[#404040] bg-white dark:bg-[#404040]">
+            <CardContent className="pt-6 text-center">
+              <div className="text-3xl mb-2">🔮</div>
+              <p className="text-sm font-medium text-[#404040] dark:text-[#FFFFFF]">
+                Discover Truth
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

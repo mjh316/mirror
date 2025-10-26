@@ -12,6 +12,12 @@ export default function VideoPage() {
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
     null
   );
+  const [selectedQuestion, setSelectedQuestion] = useState<string>("");
+  const [selectedQuestion2, setSelectedQuestion2] = useState<string>("");
+  const [firstVideoSubmitted, setFirstVideoSubmitted] = useState(false);
+  const [uploadedVideo2, setUploadedVideo2] = useState<string | null>(null);
+  const [recordedVideo2, setRecordedVideo2] = useState<string | null>(null);
+  const [transcription2, setTranscription2] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -41,7 +47,12 @@ export default function VideoPage() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         const videoURL = URL.createObjectURL(blob);
-        setRecordedVideo(videoURL);
+        // Set to appropriate video state based on whether first video was submitted
+        if (firstVideoSubmitted) {
+          setRecordedVideo2(videoURL);
+        } else {
+          setRecordedVideo(videoURL);
+        }
         setIsRecording(false);
         setRecordingTime(0);
         if (timerRef.current) {
@@ -201,32 +212,27 @@ export default function VideoPage() {
     return new Blob([arrayBuffer], { type: "audio/wav" });
   };
 
-  const transcribeVideo = async () => {
-    if (!recordedVideo && !uploadedVideo) {
-      setTranscriptionError("No video available to transcribe");
-      return;
+  const transcribeVideo = async (isSecondVideo = false): Promise<string> => {
+    const videoUrl = isSecondVideo ? (recordedVideo2 || uploadedVideo2) : (recordedVideo || uploadedVideo);
+    
+    if (!videoUrl) {
+      if (!isSecondVideo) {
+        setTranscriptionError("No video available to transcribe");
+      }
+      return '';
     }
 
-    setIsTranscribing(true);
-    setTranscriptionError(null);
+    if (!isSecondVideo) {
+      setIsTranscribing(true);
+      setTranscriptionError(null);
+    }
 
     try {
       // Get the video blob
-      let videoBlob: Blob;
+      const videoResponse = await fetch(videoUrl);
+      const videoBlob = await videoResponse.blob();
 
-      if (recordedVideo) {
-        // For recorded video, we already have the blob
-        const response = await fetch(recordedVideo);
-        videoBlob = await response.blob();
-      } else if (uploadedVideo) {
-        // For uploaded video, we need to get the file
-        const response = await fetch(uploadedVideo);
-        videoBlob = await response.blob();
-      } else {
-        throw new Error("No video available");
-      }
-
-      console.log("Extracting audio from video...");
+      console.log(`Extracting audio from video ${isSecondVideo ? '2' : '1'}...`);
       // Extract audio from video using Web Audio API
       const audioBlob = await extractAudioFromVideo(videoBlob);
       console.log("Audio extracted, size:", audioBlob.size, "bytes");
@@ -236,25 +242,42 @@ export default function VideoPage() {
       formData.append("file", audioBlob, "audio.wav");
 
       // Send to our transcription API
-      const response = await fetch("/api/transcribe", {
+      const transcribeResponse = await fetch("/api/transcribe", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json();
         throw new Error(errorData.error || "Transcription failed");
       }
 
-      const data = await response.json();
-      setTranscription(data.text);
+      const data = await transcribeResponse.json();
+      
+      // Set the appropriate state based on which video
+      if (isSecondVideo) {
+        setTranscription2(data.text);
+      } else {
+        setTranscription(data.text);
+        // Mark first video as submitted if it's the first one
+        if (!firstVideoSubmitted) {
+          setFirstVideoSubmitted(true);
+        }
+      }
+      
+      return data.text;
     } catch (error) {
       console.error("Transcription error:", error);
-      setTranscriptionError(
-        error instanceof Error ? error.message : "Transcription failed"
-      );
+      if (!isSecondVideo) {
+        setTranscriptionError(
+          error instanceof Error ? error.message : "Transcription failed"
+        );
+      }
+      return '';
     } finally {
-      setIsTranscribing(false);
+      if (!isSecondVideo) {
+        setIsTranscribing(false);
+      }
     }
   };
 
@@ -276,15 +299,68 @@ export default function VideoPage() {
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Video Upload & Recording
           </h1>
+
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Upload a video file or record yourself talking
+            Please answer 2 out of the 5 questions below! Don't overthink it - just say what comes to mind. Be yourself, speak the way you'd talk to a friend, and have fun with it! Your natural reactions, tone, and little pauses are what make your answer you.
           </p>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            1. You open your phone and see a free plane ticket anywhere! Where are you going first?
+            <br />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              (Examples: Italy for pasta-making lessons, Seoul for late night karaoke and street food, or Iceland just to chase the Northern Lights)
+            </span>
+            <br /><br />
+            2. What snack is your go-to when you're having a bad day and why?
+            <br />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              (Examples: the local cafe's iced latte, your mom's chocolate chip cookies, extra toasty cheez-its)
+            </span>
+            <br /><br />
+            3. If you could instantly master one random skill, what would it be?
+            <br />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              (Examples: the perfect comedic timing to make anyone laugh, animal-whisperer, or speed-reading)
+            </span>
+            <br /><br />
+            4. What is your biggest hot take?
+            <br />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              (Examples: "brunch is just overpriced breakfast, no one actually enjoys camping, cold pizza is better than hot pizza")
+            </span>
+            <br /><br />
+            5. If your phone could talk, what would it roast you for the most?
+            <br />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              (Example: pretending to "check the time" mid-conversation, 200 unread texts, midnight search history rabbit holes)
+            </span>
+          </p>
+        </div>
+
+        {/* Question Selection Dropdown */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+            <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-3">
+              Question 1:
+            </label>
+            <select
+              value={selectedQuestion}
+              onChange={(e) => setSelectedQuestion(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            >
+              <option value="">Select a question...</option>
+              <option value="question1">1. You open your phone and see a free plane ticket anywhere! Where are you going first?</option>
+              <option value="question2">2. What snack is your go-to when you're having a bad day and why?</option>
+              <option value="question3">3. If you could instantly master one random skill, what would it be?</option>
+              <option value="question4">4. What is your biggest hot take?</option>
+              <option value="question5">5. If your phone could talk, what would it roast you for the most?</option>
+            </select>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto">
           {/* Video Display Area */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
-            <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-6">
+            <div className="max-w-md mx-auto aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-6">
               {recordedVideo || uploadedVideo ? (
                 <video
                   controls
@@ -439,113 +515,6 @@ export default function VideoPage() {
             </div>
           </div>
 
-          {/* Transcription Section */}
-          {(recordedVideo || uploadedVideo) && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Transcription
-              </h2>
-
-              <div className="space-y-4">
-                <button
-                  onClick={transcribeVideo}
-                  disabled={isTranscribing}
-                  className="w-full flex items-center justify-center px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors"
-                >
-                  {isTranscribing ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Transcribing...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                        />
-                      </svg>
-                      Transcribe Speech
-                    </>
-                  )}
-                </button>
-
-                {transcriptionError && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-xl">
-                    <p className="text-red-700 dark:text-red-300">
-                      {transcriptionError}
-                    </p>
-                  </div>
-                )}
-
-                {transcription && (
-                  <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                      Transcription Result:
-                    </h3>
-                    <div className="prose dark:prose-invert max-w-none">
-                      <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
-                        {transcription}
-                      </p>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(transcription)
-                        }
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                      >
-                        Copy Text
-                      </button>
-                      <button
-                        onClick={() => {
-                          const blob = new Blob([transcription], {
-                            type: "text/plain",
-                          });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = "transcription.txt";
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Reset Button */}
           {(recordedVideo || uploadedVideo) && (
             <div className="text-center mt-8">
@@ -558,7 +527,201 @@ export default function VideoPage() {
             </div>
           )}
 
-        </div>
+          {/* Question 2 Selection */}
+          <div className="max-w-4xl mx-auto mb-8 mt-16">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+              <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                Question 2:
+              </label>
+              <select
+                value={selectedQuestion2}
+                onChange={(e) => setSelectedQuestion2(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                <option value="">Select a question...</option>
+                <option value="question1">1. You open your phone and see a free plane ticket anywhere! Where are you going first?</option>
+                <option value="question2">2. What snack is your go-to when you're having a bad day and why?</option>
+                <option value="question3">3. If you could instantly master one random skill, what would it be?</option>
+                <option value="question4">4. What is your biggest hot take?</option>
+                <option value="question5">5. If your phone could talk, what would it roast you for the most?</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Second Video Display and Upload/Record Section */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
+              <div className="max-w-md mx-auto aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-6">
+                {recordedVideo2 || uploadedVideo2 ? (
+                      <video
+                        controls
+                        className="w-full h-full object-cover"
+                        src={recordedVideo2 || uploadedVideo2 || undefined}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                            <svg
+                              className="w-8 h-8 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            No video selected
+                          </p>
+                        </div>
+                      </div>
+                    )}
+              </div>
+            </div>
+
+            {/* Upload and Record Controls */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {/* Upload Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                    Upload Video
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    Choose a video file from your device
+                  </p>
+                  <div className="space-y-4">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const videoURL = URL.createObjectURL(file);
+                          setUploadedVideo2(videoURL);
+                        }
+                      }}
+                      className="hidden"
+                      id="video-upload-2"
+                    />
+                    <label
+                      htmlFor="video-upload-2"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg
+                          className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="font-semibold">Click to upload</span> or
+                          drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          MP4, MOV, AVI, etc.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Recording Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                    Record Video
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    Record yourself using your camera
+                  </p>
+                  <div className="space-y-4">
+                    {!isRecording ? (
+                      <button
+                        onClick={startRecording}
+                        className="w-full flex items-center justify-center px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                        </svg>
+                        Start Recording
+                      </button>
+                    ) : (
+                      <button
+                        onClick={stopRecording}
+                        className="w-full flex items-center justify-center px-6 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <rect x="6" y="6" width="12" height="12" />
+                        </svg>
+                        Stop Recording
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="text-center mt-8">
+            <button
+              onClick={async () => {
+                let t1 = transcription || '';
+                let t2 = transcription2 || '';
+                
+                // Transcribe first video if needed
+                if (!transcription && (recordedVideo || uploadedVideo)) {
+                  t1 = await transcribeVideo(false);
+                }
+                
+                // Transcribe second video if needed  
+                if (!transcription2 && (recordedVideo2 || uploadedVideo2)) {
+                  t2 = await transcribeVideo(true);
+                }
+                
+                // Navigate with the transcription text we got back
+                window.location.href = `/results?transcription1=${encodeURIComponent(t1)}&transcription2=${encodeURIComponent(t2)}`;
+              }}
+              disabled={!(recordedVideo || uploadedVideo)}
+              className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Submit
+            </button>
+          </div>
       </div>
     </div>
   );

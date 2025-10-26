@@ -215,20 +215,22 @@ export default function VideoPage() {
   };
 
   const transcribeVideo = async (isSecondVideo = false): Promise<string> => {
-    const videoUrl = isSecondVideo ? (recordedVideo2 || uploadedVideo2) : (recordedVideo || uploadedVideo);
-    
+    const videoUrl = isSecondVideo
+      ? recordedVideo2 || uploadedVideo2
+      : recordedVideo || uploadedVideo;
+
     if (!videoUrl) {
       if (!isSecondVideo) {
         setTranscriptionError("No video available to transcribe");
       }
-      return '';
+      return "";
     }
 
     if (!user) {
       if (!isSecondVideo) {
         setTranscriptionError("User not authenticated");
       }
-      return '';
+      return "";
     }
 
     if (!isSecondVideo) {
@@ -241,7 +243,9 @@ export default function VideoPage() {
       const videoResponse = await fetch(videoUrl);
       const videoBlob = await videoResponse.blob();
 
-      console.log(`Extracting audio from video ${isSecondVideo ? '2' : '1'}...`);
+      console.log(
+        `Extracting audio from video ${isSecondVideo ? "2" : "1"}...`
+      );
       // Extract audio from video using Web Audio API
       const audioBlob = await extractAudioFromVideo(videoBlob);
       console.log("Audio extracted, size:", audioBlob.size, "bytes");
@@ -250,7 +254,10 @@ export default function VideoPage() {
       const formData = new FormData();
       formData.append("file", audioBlob, "audio.wav");
       formData.append("userId", user.id);
-      formData.append("questionId", isSecondVideo ? selectedQuestion2 : selectedQuestion);
+      formData.append(
+        "questionId",
+        isSecondVideo ? selectedQuestion2 : selectedQuestion
+      );
 
       // Send to our transcription API
       const transcribeResponse = await fetch("/api/transcribe", {
@@ -264,7 +271,7 @@ export default function VideoPage() {
       }
 
       const data = await transcribeResponse.json();
-      
+
       // Set the appropriate state based on which video
       if (isSecondVideo) {
         setTranscription2(data.text);
@@ -275,7 +282,7 @@ export default function VideoPage() {
           setFirstVideoSubmitted(true);
         }
       }
-      
+
       return data.text;
     } catch (error) {
       console.error("Transcription error:", error);
@@ -284,7 +291,7 @@ export default function VideoPage() {
           error instanceof Error ? error.message : "Transcription failed"
         );
       }
-      return '';
+      return "";
     } finally {
       if (!isSecondVideo) {
         setIsTranscribing(false);
@@ -312,37 +319,51 @@ export default function VideoPage() {
           </h1>
 
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Please answer 2 out of the 5 questions below! Don't overthink it - just say what comes to mind. Be yourself, speak the way you'd talk to a friend, and have fun with it! Your natural reactions, tone, and little pauses are what make your answer you.
+            Please answer 2 out of the 5 questions below! Don't overthink it -
+            just say what comes to mind. Be yourself, speak the way you'd talk
+            to a friend, and have fun with it! Your natural reactions, tone, and
+            little pauses are what make your answer you.
           </p>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            1. You open your phone and see a free plane ticket anywhere! Where are you going first?
+            1. You open your phone and see a free plane ticket anywhere! Where
+            are you going first?
             <br />
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              (Examples: Italy for pasta-making lessons, Seoul for late night karaoke and street food, or Iceland just to chase the Northern Lights)
+              (Examples: Italy for pasta-making lessons, Seoul for late night
+              karaoke and street food, or Iceland just to chase the Northern
+              Lights)
             </span>
-            <br /><br />
+            <br />
+            <br />
             2. What snack is your go-to when you're having a bad day and why?
             <br />
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              (Examples: the local cafe's iced latte, your mom's chocolate chip cookies, extra toasty cheez-its)
+              (Examples: the local cafe's iced latte, your mom's chocolate chip
+              cookies, extra toasty cheez-its)
             </span>
-            <br /><br />
+            <br />
+            <br />
             3. If you could instantly master one random skill, what would it be?
             <br />
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              (Examples: the perfect comedic timing to make anyone laugh, animal-whisperer, or speed-reading)
+              (Examples: the perfect comedic timing to make anyone laugh,
+              animal-whisperer, or speed-reading)
             </span>
-            <br /><br />
+            <br />
+            <br />
             4. What is your biggest hot take?
             <br />
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              (Examples: "brunch is just overpriced breakfast, no one actually enjoys camping, cold pizza is better than hot pizza")
+              (Examples: "brunch is just overpriced breakfast, no one actually
+              enjoys camping, cold pizza is better than hot pizza")
             </span>
-            <br /><br />
+            <br />
+            <br />
             5. If your phone could talk, what would it roast you for the most?
             <br />
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              (Example: pretending to "check the time" mid-conversation, 200 unread texts, midnight search history rabbit holes)
+              (Example: pretending to "check the time" mid-conversation, 200
+              unread texts, midnight search history rabbit holes)
             </span>
           </p>
         </div>
@@ -359,11 +380,25 @@ export default function VideoPage() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             >
               <option value="">Select a question...</option>
-              <option value="question1">1. You open your phone and see a free plane ticket anywhere! Where are you going first?</option>
-              <option value="question2">2. What snack is your go-to when you're having a bad day and why?</option>
-              <option value="question3">3. If you could instantly master one random skill, what would it be?</option>
-              <option value="question4">4. What is your biggest hot take?</option>
-              <option value="question5">5. If your phone could talk, what would it roast you for the most?</option>
+              <option value="question1">
+                1. You open your phone and see a free plane ticket anywhere!
+                Where are you going first?
+              </option>
+              <option value="question2">
+                2. What snack is your go-to when you're having a bad day and
+                why?
+              </option>
+              <option value="question3">
+                3. If you could instantly master one random skill, what would it
+                be?
+              </option>
+              <option value="question4">
+                4. What is your biggest hot take?
+              </option>
+              <option value="question5">
+                5. If your phone could talk, what would it roast you for the
+                most?
+              </option>
             </select>
           </div>
         </div>
@@ -550,11 +585,25 @@ export default function VideoPage() {
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               >
                 <option value="">Select a question...</option>
-                <option value="question1">1. You open your phone and see a free plane ticket anywhere! Where are you going first?</option>
-                <option value="question2">2. What snack is your go-to when you're having a bad day and why?</option>
-                <option value="question3">3. If you could instantly master one random skill, what would it be?</option>
-                <option value="question4">4. What is your biggest hot take?</option>
-                <option value="question5">5. If your phone could talk, what would it roast you for the most?</option>
+                <option value="question1">
+                  1. You open your phone and see a free plane ticket anywhere!
+                  Where are you going first?
+                </option>
+                <option value="question2">
+                  2. What snack is your go-to when you're having a bad day and
+                  why?
+                </option>
+                <option value="question3">
+                  3. If you could instantly master one random skill, what would
+                  it be?
+                </option>
+                <option value="question4">
+                  4. What is your biggest hot take?
+                </option>
+                <option value="question5">
+                  5. If your phone could talk, what would it roast you for the
+                  most?
+                </option>
               </select>
             </div>
           </div>
@@ -564,69 +613,17 @@ export default function VideoPage() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8">
               <div className="max-w-md mx-auto aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-6">
                 {recordedVideo2 || uploadedVideo2 ? (
-                      <video
-                        controls
-                        className="w-full h-full object-cover"
-                        src={recordedVideo2 || uploadedVideo2 || undefined}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                            <svg
-                              className="w-8 h-8 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                          <p className="text-gray-500 dark:text-gray-400">
-                            No video selected
-                          </p>
-                        </div>
-                      </div>
-                    )}
-              </div>
-            </div>
-
-            {/* Upload and Record Controls */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-                {/* Upload Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                    Upload Video
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6">
-                    Choose a video file from your device
-                  </p>
-                  <div className="space-y-4">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const videoURL = URL.createObjectURL(file);
-                          setUploadedVideo2(videoURL);
-                        }
-                      }}
-                      className="hidden"
-                      id="video-upload-2"
-                    />
-                    <label
-                      htmlFor="video-upload-2"
-                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <video
+                    controls
+                    className="w-full h-full object-cover"
+                    src={recordedVideo2 || uploadedVideo2 || undefined}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                          className="w-8 h-8 text-gray-400"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -635,104 +632,182 @@ export default function VideoPage() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                           />
                         </svg>
-                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="font-semibold">Click to upload</span> or
-                          drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          MP4, MOV, AVI, etc.
-                        </p>
                       </div>
-                    </label>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No video selected
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+            </div>
 
-                {/* Recording Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                    Record Video
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6">
-                    Record yourself using your camera
-                  </p>
-                  <div className="space-y-4">
-                    {!isRecording ? (
-                      <button
-                        onClick={startRecording}
-                        className="w-full flex items-center justify-center px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
+            {/* Upload and Record Controls */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Upload Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Upload Video
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Choose a video file from your device
+                </p>
+                <div className="space-y-4">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const videoURL = URL.createObjectURL(file);
+                        setUploadedVideo2(videoURL);
+                      }
+                    }}
+                    className="hidden"
+                    id="video-upload-2"
+                  />
+                  <label
+                    htmlFor="video-upload-2"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg
+                        className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                        </svg>
-                        Start Recording
-                      </button>
-                    ) : (
-                      <button
-                        onClick={stopRecording}
-                        className="w-full flex items-center justify-center px-6 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors"
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-semibold">Click to upload</span>{" "}
+                        or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        MP4, MOV, AVI, etc.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Recording Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Record Video
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Record yourself using your camera
+                </p>
+                <div className="space-y-4">
+                  {!isRecording ? (
+                    <button
+                      onClick={startRecording}
+                      className="w-full flex items-center justify-center px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <rect x="6" y="6" width="12" height="12" />
-                        </svg>
-                        Stop Recording
-                      </button>
-                    )}
-                  </div>
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                      Start Recording
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopRecording}
+                      className="w-full flex items-center justify-center px-6 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect x="6" y="6" width="12" height="12" />
+                      </svg>
+                      Stop Recording
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Submit Button */}
-          <div className="text-center mt-8">
-            <button
-              onClick={async () => {
-                let t1 = transcription || '';
-                let t2 = transcription2 || '';
-                
-                // Transcribe first video if needed
-                if (!transcription && (recordedVideo || uploadedVideo)) {
-                  t1 = await transcribeVideo(false);
+        {/* Submit Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={async () => {
+              let t1 = transcription || "";
+              let t2 = transcription2 || "";
+
+              // Transcribe first video if needed
+              if (!transcription && (recordedVideo || uploadedVideo)) {
+                t1 = await transcribeVideo(false);
+              }
+
+              // Transcribe second video if needed
+              if (!transcription2 && (recordedVideo2 || uploadedVideo2)) {
+                t2 = await transcribeVideo(true);
+              }
+
+              // Create Fish model after both transcriptions
+              if (user && (recordedVideo || uploadedVideo)) {
+                try {
+                  console.log("Creating Fish model...");
+                  const fishResponse = await fetch("/api/createFishModel", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ userId: user.id }),
+                  });
+
+                  if (fishResponse.ok) {
+                    const fishData = await fishResponse.json();
+                    console.log("Fish model created:", fishData);
+                  } else {
+                    console.error(
+                      "Failed to create Fish model:",
+                      await fishResponse.text()
+                    );
+                  }
+                } catch (error) {
+                  console.error("Error creating Fish model:", error);
                 }
-                
-                // Transcribe second video if needed  
-                if (!transcription2 && (recordedVideo2 || uploadedVideo2)) {
-                  t2 = await transcribeVideo(true);
-                }
-                
-                // Navigate with the transcription text we got back
-                window.location.href = `/results?transcription1=${encodeURIComponent(t1)}&transcription2=${encodeURIComponent(t2)}`;
-              }}
-              disabled={!(recordedVideo || uploadedVideo)}
-              className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors"
+              }
+
+              // Navigate with the transcription text we got back
+              window.location.href = `/results?transcription1=${encodeURIComponent(t1)}&transcription2=${encodeURIComponent(t2)}`;
+            }}
+            disabled={!(recordedVideo || uploadedVideo)}
+            className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-xl transition-colors"
+          >
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Submit
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Submit
+          </button>
+        </div>
       </div>
     </div>
   );

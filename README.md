@@ -1,5 +1,14 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+This project requires the following environment variables:
+
+- `FISH_API_KEY` - Your Fish Audio API token for creating voice models and text-to-speech
+- `OPENAI_API_KEY` - Your OpenAI API key for transcription
+- `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL
+- `CLERK_JWT_ISSUER_DOMAIN` - Your Clerk JWT issuer domain for authentication
+
 ## Getting Started
 
 First, run the development server:

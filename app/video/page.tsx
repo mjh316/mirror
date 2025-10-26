@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useUser } from "@clerk/nextjs";
 
 export default function VideoPage() {
+  const { user } = useUser();
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -222,6 +224,13 @@ export default function VideoPage() {
       return '';
     }
 
+    if (!user) {
+      if (!isSecondVideo) {
+        setTranscriptionError("User not authenticated");
+      }
+      return '';
+    }
+
     if (!isSecondVideo) {
       setIsTranscribing(true);
       setTranscriptionError(null);
@@ -240,6 +249,8 @@ export default function VideoPage() {
       // Create FormData for the API
       const formData = new FormData();
       formData.append("file", audioBlob, "audio.wav");
+      formData.append("userId", user.id);
+      formData.append("questionId", isSecondVideo ? selectedQuestion2 : selectedQuestion);
 
       // Send to our transcription API
       const transcribeResponse = await fetch("/api/transcribe", {
